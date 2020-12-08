@@ -62,7 +62,11 @@ class EnquiryController extends VoyagerBaseController
 
         // Check if reCAPTCHA is on & verify
         if (setting('admin.google_recaptcha_site_key')) {
-            return($this->verifyCaptcha($request));
+           if($this->verifyCaptcha($request) == ''){
+                return redirect()
+                ->back()
+                ->with('error', 'Unable to validate Google reCAPTCHA');
+           }
         }
 
         // Execute the hook
@@ -212,19 +216,26 @@ class EnquiryController extends VoyagerBaseController
      */
     protected function verifyCaptcha(Request $request)
     {
-        $client = new \GuzzleHttp\Client();
-        $guzzleRequest = new \GuzzleHttp\Psr7\Request('POST', 'https://www.google.com/recaptcha/api/siteverify');
-        $response = $client->send($guzzleRequest, [
-            'secret' => setting('admin.google_recaptcha_secret_key'),
-            'response' => $request->input('g-recaptcha-response'),
-            'remoteip' => $_SERVER['REMOTE_ADDR'],
-        ]);
 
-        if ($response->getStatusCode() !== 200) {
-            return redirect()
-                ->back()
-                ->with('error', 'Unable to validate Google reCAPTCHA');
+
+           $recaptcha = $request->input('g-recaptcha-response');
+        
+        $client = new \GuzzleHttp\Client([
+            'base_uri' => 'https://google.com/recaptcha/api/',
+            'timeout' => 2.0
+            ]);
+
+        $response = $client->request('POST', 'siteverify', [
+            'query' => [
+            'secret' => setting('admin.google_recaptcha_secret_key'),
+            'response' => $recaptcha]]);
+
+        if(json_decode($response->getBody())->success == true){
+            return '1';
+        } else {
+            return '';
         }
+
     }
 
     /**
