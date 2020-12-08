@@ -62,7 +62,7 @@ class EnquiryController extends VoyagerBaseController
 
         // Check if reCAPTCHA is on & verify
         if (setting('admin.google_recaptcha_site_key')) {
-            $this->verifyCaptcha($request);
+            return($this->verifyCaptcha($request));
         }
 
         // Execute the hook
